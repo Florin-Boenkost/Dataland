@@ -1,0 +1,7 @@
+{
+  "id": "shared-datapoint-type",
+  "name": "Shared type",
+  "businessDefinition": "Shared business definition",
+  "dataPointBaseTypeId": "test-datapoint-base-type",
+  "frameworkOwnership": []
+}

@@ -22,6 +22,7 @@ import axios, { type AxiosInstance } from 'axios';
 import { updateTokenAndItsExpiryTimestampAndStoreBoth } from '@/utils/SessionTimeoutUtils';
 import { DataPointControllerApi, DataExportControllerApi } from '@clients/backend/api';
 import { CreditsControllerApi } from '@clients/accountingservice';
+import { SpecificationControllerApi } from '@clients/specificationservice';
 
 interface ApiBackendClients {
   actuator: backendApis.ActuatorApiInterface;
@@ -50,6 +51,7 @@ interface ApiClients {
   companyRightsController: CompanyRightsControllerApi;
   creditsController: CreditsControllerApi;
   preApprovalController: PreApprovalControllerApi;
+  specificationController: SpecificationControllerApi;
 }
 
 type ApiClientConstructor<T> = new (
@@ -121,6 +123,7 @@ export class ApiClientProvider {
       companyRightsController: this.getClientFactory('/community')(CompanyRightsControllerApi),
       creditsController: this.getClientFactory('/accounting')(CreditsControllerApi),
       preApprovalController: this.getClientFactory('/qa')(PreApprovalControllerApi),
+      specificationController: this.getClientFactory('/specifications')(SpecificationControllerApi),
     };
   }
 

@@ -6,14 +6,17 @@ import org.dataland.datalandspecification.database.SpecificationDatabase
 import org.dataland.datalandspecification.specifications.DataPointBaseType
 import org.dataland.datalandspecification.specifications.DataPointType
 import org.dataland.datalandspecificationservice.api.SpecificationApi
+import org.dataland.datalandspecificationservice.configurations.DataPointTypeUsageIndex
 import org.dataland.datalandspecificationservice.model.DataPointBaseTypeResolvedSchema
 import org.dataland.datalandspecificationservice.model.DataPointBaseTypeSpecification
 import org.dataland.datalandspecificationservice.model.DataPointTypeSpecification
+import org.dataland.datalandspecificationservice.model.DataPointTypeSummary
 import org.dataland.datalandspecificationservice.model.FrameworkSpecification
 import org.dataland.datalandspecificationservice.model.SimpleFrameworkSpecification
 import org.dataland.datalandspecificationservice.model.getRef
 import org.dataland.datalandspecificationservice.model.toDto
 import org.dataland.datalandspecificationservice.model.toSimpleDto
+import org.dataland.datalandspecificationservice.model.toSummaryDto
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.http.ResponseEntity
@@ -25,6 +28,7 @@ import org.springframework.web.bind.annotation.RestController
 @RestController
 class SpecificationController(
     @Autowired val database: SpecificationDatabase,
+    @Autowired val usageIndex: DataPointTypeUsageIndex,
     @Value("\${dataland.primary-url}") val datalandPrimaryUrl: String,
 ) : SpecificationApi {
     /**
@@ -70,6 +74,19 @@ class SpecificationController(
                 ?: throwFrameworkNotFound(frameworkSpecificationId)
         return ResponseEntity.ok(frameworkSpecification.toDto(datalandPrimaryUrl, database))
     }
+
+    override fun listDataPointTypeSpecifications(): ResponseEntity<List<DataPointTypeSummary>> =
+        ResponseEntity.ok(
+            database.dataPointTypes.values
+                .sortedWith(compareBy({ it.name }, { it.id }))
+                .map { dataPointType ->
+                    val usedBy =
+                        usageIndex.getFrameworkIds(dataPointType.id).mapNotNull {
+                            database.frameworks[it]?.getRef(datalandPrimaryUrl)
+                        }
+                    dataPointType.toSummaryDto(datalandPrimaryUrl, database, usedBy)
+                },
+        )
 
     override fun getDataPointTypeSpecification(dataPointTypeId: String): ResponseEntity<DataPointTypeSpecification> {
         val dataPointSpecification = getRawDataPointSpecification(dataPointTypeId)

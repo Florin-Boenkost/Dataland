@@ -1,0 +1,10 @@
+{
+  "id": "shared-framework-b",
+  "businessDefinition": "Shared framework b",
+  "name": "Shared b",
+  "schema": {
+    "section": {
+      "field": "shared-datapoint-type"
+    }
+  }
+}

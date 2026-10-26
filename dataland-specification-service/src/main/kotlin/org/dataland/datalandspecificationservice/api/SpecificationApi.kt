@@ -6,6 +6,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses
 import org.dataland.datalandspecificationservice.model.DataPointBaseTypeResolvedSchema
 import org.dataland.datalandspecificationservice.model.DataPointBaseTypeSpecification
 import org.dataland.datalandspecificationservice.model.DataPointTypeSpecification
+import org.dataland.datalandspecificationservice.model.DataPointTypeSummary
 import org.dataland.datalandspecificationservice.model.FrameworkSpecification
 import org.dataland.datalandspecificationservice.model.SimpleFrameworkSpecification
 import org.springframework.http.ResponseEntity
@@ -73,6 +74,19 @@ interface SpecificationApi {
         produces = ["application/json"],
     )
     fun listFrameworkSpecifications(): ResponseEntity<List<SimpleFrameworkSpecification>>
+
+    /**
+     * Get a summary of all data point type specifications
+     */
+    @Operation(
+        summary = "List all data point types.",
+        description = "List a summary of all data point types, including the frameworks using them.",
+    )
+    @GetMapping(
+        value = ["/data-point-types"],
+        produces = ["application/json"],
+    )
+    fun listDataPointTypeSpecifications(): ResponseEntity<List<DataPointTypeSummary>>
 
     /**
      * Get the data point type specification for a given id
