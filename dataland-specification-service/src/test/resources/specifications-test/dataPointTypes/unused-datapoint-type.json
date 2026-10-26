@@ -1,0 +1,7 @@
+{
+  "id": "unused-datapoint-type",
+  "name": "Unused type",
+  "businessDefinition": "Unused business definition",
+  "dataPointBaseTypeId": "test-datapoint-base-type",
+  "frameworkOwnership": []
+}

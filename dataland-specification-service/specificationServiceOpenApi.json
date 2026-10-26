@@ -213,6 +213,51 @@
         }
       }
     },
+    "/data-point-types": {
+      "get": {
+        "tags": [
+          "specification-controller"
+        ],
+        "summary": "List all data point types.",
+        "description": "List a summary of all data point types, including the frameworks using them.",
+        "operationId": "listDataPointTypeSpecifications",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DataPointTypeSummary"
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error occurred",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "headers": {
+              "WWW-Authenticate": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/data-point-types/{dataPointTypeId}": {
       "get": {
         "tags": [
@@ -686,6 +731,36 @@
           "referencedReportJsonPath": {
             "type": "string",
             "nullable": true
+          }
+        }
+      },
+      "DataPointTypeSummary": {
+        "required": [
+          "businessDefinition",
+          "dataPointBaseType",
+          "dataPointType",
+          "name",
+          "usedBy"
+        ],
+        "type": "object",
+        "properties": {
+          "dataPointType": {
+            "$ref": "#/components/schemas/IdWithRef"
+          },
+          "name": {
+            "type": "string"
+          },
+          "businessDefinition": {
+            "type": "string"
+          },
+          "dataPointBaseType": {
+            "$ref": "#/components/schemas/IdWithRef"
+          },
+          "usedBy": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/IdWithRef"
+            }
           }
         }
       },

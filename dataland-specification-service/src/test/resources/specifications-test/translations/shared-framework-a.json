@@ -1,0 +1,8 @@
+{
+  "id": "shared-framework-a",
+  "schema": {
+    "section": {
+      "field": "sharedAlias"
+    }
+  }
+}
