@@ -49,6 +49,7 @@ const tabs = ref<Array<TabInfo>>([
   { id: 'my-portfolios', label: 'MY PORTFOLIOS', route: '/portfolios', isVisible: true },
   { id: 'shared-portfolios', label: 'SHARED PORTFOLIOS', route: '/shared-portfolios', isVisible: false },
   { id: 'companies', label: 'COMPANIES', route: '/companies', isVisible: true },
+  { id: 'framework-explorer', label: 'FRAMEWORK EXPLORER', route: '/framework-explorer', isVisible: true },
   { id: 'my-company', label: 'MY COMPANY', route: '/companies', isVisible: false },
   { id: 'my-datasets', label: 'MY DATASETS', route: '/datasets', isVisible: true },
   { id: 'qa', label: 'QA', route: '/qualityassurance', isVisible: false },

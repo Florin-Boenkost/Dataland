@@ -24,6 +24,7 @@ function isTabVisible(textInTab: string, isTabExpectedToBeVisible: boolean): voi
 describe('Component tests for the tab used by logged-in users to switch pages', () => {
   enum AlwaysVisibleTabs {
     Companies = 'COMPANIES',
+    FrameworkExplorer = 'FRAMEWORK EXPLORER',
     MyDatasets = 'MY DATASETS',
     MyPortfolios = 'MY PORTFOLIOS',
     MyDataRequests = 'MY DATA REQUESTS',
@@ -86,6 +87,12 @@ describe('Component tests for the tab used by logged-in users to switch pages', 
     for (const tabText of Object.values(AlwaysVisibleTabs)) {
       isTabVisible(tabText, true);
     }
+    cy.get('[data-pc-name="tablist"] [data-pc-name="tab"]').then(($tabs) => {
+      const labels = [...$tabs].map((tab) => tab.textContent?.trim());
+      expect(labels.indexOf(AlwaysVisibleTabs.FrameworkExplorer)).to.equal(
+        labels.indexOf(AlwaysVisibleTabs.Companies) + 1
+      );
+    });
   }
 
   it('Validate tabs for a logged-in Dataland-Reader with no company role assignments', function () {
