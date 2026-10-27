@@ -12,6 +12,7 @@ const ViewFrameworkData = (): Promise<RouteComponent> => import('@/components/pa
 const DocumentOverview = (): Promise<RouteComponent> => import('@/components/pages/DocumentOverview.vue');
 const DatasetOverview = (): Promise<RouteComponent> => import('@/components/pages/DatasetOverview.vue');
 const MyDataRequestsOverview = (): Promise<RouteComponent> => import('@/components/pages/MyDataRequestsOverview.vue');
+const FrameworkExplorerPage = (): Promise<RouteComponent> => import('@/components/pages/FrameworkExplorerPage.vue');
 
 const PortfolioOverview = (): Promise<RouteComponent> => import('@/components/pages/PortfolioOverview.vue');
 const SharedPortfolioOverview = (): Promise<RouteComponent> => import('@/components/pages/SharedPortfolioOverview.vue');
@@ -164,6 +165,15 @@ const routes = [
     component: DatasetOverview,
     meta: {
       initialTabId: 'my-datasets',
+      requiresAuthentication: true,
+    },
+  },
+  {
+    path: '/framework-explorer',
+    name: 'Framework Explorer',
+    component: FrameworkExplorerPage,
+    meta: {
+      initialTabId: 'framework-explorer',
       requiresAuthentication: true,
     },
   },
