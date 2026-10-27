@@ -6,8 +6,11 @@ import {
   buildFrameworkTree,
   flattenValueStructure,
   getDatasetDatapointLabels,
+  getDatasetSectionLabels,
+  groupDatapointsByName,
   parseFrameworkSchema,
   resolveStructure,
+  type DatapointEntry,
 } from '@/components/resources/frameworkExplorer/frameworkExplorerSchema';
 import { minimalKeycloakMock } from '@ct/testUtils/Keycloak';
 import { getMountingFunction } from '@ct/testUtils/Mount';
@@ -60,15 +63,45 @@ describe('Framework explorer schema mapping', () => {
     const entries = buildDatapointIndex([pcafFramework]);
     expect(entries.find((entry) => entry.id === 'extendedDateFiscalYearEnd')?.displayName).to.equal('Fiscal Year End');
     expect(entries.find((entry) => entry.id === 'unknownType')?.displayName).to.equal('unknownType');
-    const tree = buildFrameworkTree(parseFrameworkSchema(pcafFramework.schema), labels);
+    const parsedSchema = parseFrameworkSchema(pcafFramework.schema);
+    const sectionLabels = getDatasetSectionLabels('pcaf', parsedSchema);
+    const tree = buildFrameworkTree(parsedSchema, labels, sectionLabels);
+    expect(tree[0].label).to.equal('General');
+    expect(tree[0].children?.[0].label).to.equal('General');
     expect(tree[0].children?.[0].children?.[0].label).to.equal('Fiscal Year End');
     expect(tree[0].children?.[0].children?.[1].label).to.equal('unknownType');
+    expect(entries[0].occurrences[0].displayPath).to.deep.equal(['General', 'General']);
 
     getMountingFunction({ keycloak: minimalKeycloakMock({}) })(DatapointSearchList, {
       props: { entries, search: 'Fiscal Year End' },
     });
     cy.contains('Fiscal Year End').should('be.visible');
     cy.contains('unknownType').should('not.exist');
+  });
+
+  it('uses the dataset subcategory heading when a technical name differs', () => {
+    const lksgSchema = parseFrameworkSchema(
+      JSON.stringify({
+        general: {
+          masterData: {
+            dataDate: { id: 'dataDate', ref: '/specifications/data-point-types/dataDate' },
+          },
+        },
+        unlistedCategory: {
+          unlistedSubcategory: {
+            unknown: { id: 'unknownType', ref: '/specifications/data-point-types/unknownType' },
+          },
+        },
+      })
+    );
+    const sectionLabels = getDatasetSectionLabels('lksg', lksgSchema);
+    const tree = buildFrameworkTree(lksgSchema, getDatasetDatapointLabels('lksg'), sectionLabels);
+    expect(tree[0].label).to.equal('General');
+    expect(tree[0].children?.[0].label).to.equal('Master Data');
+    expect(tree[1].label).to.equal('unlistedCategory');
+    expect(tree[1].children?.[0].label).to.equal('unlistedSubcategory');
+    expect(tree[0].key).to.equal('general');
+    expect(tree[0].children?.[0].key).to.equal('general.masterData');
   });
 
   it('builds a tree and reverse index, then reads the same datapoint path from the resolved schema', () => {
@@ -86,6 +119,52 @@ describe('Framework explorer schema mapping', () => {
     expect(flattenValueStructure(resolveStructure(resolvedSchema, index[1].occurrences[0].path))).to.deep.equal([
       { path: 'Value', type: 'LocalDate' },
     ]);
+  });
+});
+
+describe('Framework explorer datapoint list', () => {
+  const entry = (id: string, frameworkId: string, frameworkName: string, category: string): DatapointEntry => ({
+    id,
+    displayName: 'Absolute Share',
+    occurrences: [
+      { frameworkId, frameworkName, path: [category, id], displayPath: [category], aliasExport: undefined },
+    ],
+  });
+  const entries = [
+    entry('absoluteShareA', 'fw-a', 'Framework A', 'Turnover'),
+    entry('absoluteShareB', 'fw-b', 'Framework B', 'CapEx'),
+  ];
+
+  it('groups datapoints with the same name into one expandable row listing every framework', () => {
+    expect(groupDatapointsByName(entries)).to.have.length(1);
+    getMountingFunction({ keycloak: minimalKeycloakMock({}) })(DatapointSearchList, {
+      props: { entries, search: '' },
+    });
+    cy.get('tbody tr').should('have.length', 1);
+    cy.contains('Absolute Share').click();
+    cy.contains('button', 'Framework A').should('be.visible');
+    cy.contains('button', 'Framework B').should('be.visible');
+    cy.contains('Turnover').should('be.visible');
+    cy.contains('CapEx').should('be.visible');
+  });
+
+  it('highlights the selected datapoint in Dataland colours while keeping its text visible', () => {
+    getMountingFunction({ keycloak: minimalKeycloakMock({}) })(DatapointSearchList, {
+      props: { entries, search: '', selectedId: 'absoluteShareB', selectedFrameworkId: 'fw-b' },
+    });
+    cy.get('tr.explorer-selected-row').should('have.length', 2);
+    cy.get('tr.explorer-selected-row')
+      .first()
+      .contains('Absolute Share')
+      .should('be.visible')
+      .then(($text) => {
+        const row = $text.closest('tr')[0];
+        const style = getComputedStyle(row);
+        expect(style.backgroundColor).not.to.equal(style.color);
+        expect(style.backgroundColor).not.to.equal('rgb(15, 23, 42)');
+      });
+    cy.contains('button', 'Framework A').closest('tr').should('not.have.class', 'explorer-selected-row');
+    cy.contains('button', 'Framework B').closest('tr').should('have.class', 'explorer-selected-row');
   });
 });
 
@@ -125,6 +204,7 @@ describe('Framework explorer page', () => {
     });
     cy.get('@resolved.all').should('have.length', 0);
     cy.contains('firstType').click();
+    cy.contains('button', 'Sample framework').click();
     cy.wait('@detail');
     cy.wait('@base');
     cy.wait('@resolved');

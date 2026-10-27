@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <div class="explorer-tree">
     <label for="framework-select" class="block mb-2">Framework</label>
     <Select
       id="framework-select"
@@ -29,7 +29,12 @@ import type { FrameworkSpecification, SimpleFrameworkSpecification } from '@clie
 import Select from 'primevue/select';
 import Tree from 'primevue/tree';
 import Message from 'primevue/message';
-import { buildFrameworkTree, getDatasetDatapointLabels, parseFrameworkSchema } from './frameworkExplorerSchema';
+import {
+  buildFrameworkTree,
+  getDatasetDatapointLabels,
+  getDatasetSectionLabels,
+  parseFrameworkSchema,
+} from './frameworkExplorerSchema';
 
 const props = defineProps<{
   frameworks: SimpleFrameworkSpecification[];
@@ -47,14 +52,12 @@ const schemaError = computed(() => {
     return true;
   }
 });
-const nodes = computed(() =>
-  props.specification && !schemaError.value
-    ? buildFrameworkTree(
-        parseFrameworkSchema(props.specification.schema),
-        getDatasetDatapointLabels(props.specification.framework.id)
-      )
-    : []
-);
+const nodes = computed(() => {
+  if (!props.specification || schemaError.value) return [];
+  const schema = parseFrameworkSchema(props.specification.schema);
+  const id = props.specification.framework.id;
+  return buildFrameworkTree(schema, getDatasetDatapointLabels(id), getDatasetSectionLabels(id, schema));
+});
 const expandedKeys = computed(() => {
   const keys: Record<string, boolean> = {};
   const visit = (treeNodes: typeof nodes.value): void => {
@@ -93,3 +96,11 @@ function onSelect(keys: Record<string, boolean> | null): void {
   if (id) emit('select', id);
 }
 </script>
+
+<style scoped>
+.explorer-tree :deep(.p-tree-node-content.p-tree-node-selected) {
+  background: var(--p-primary-100);
+  color: var(--p-text-color);
+  box-shadow: inset 4px 0 0 var(--p-primary-color);
+}
+</style>

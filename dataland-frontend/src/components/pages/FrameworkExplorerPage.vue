@@ -26,8 +26,9 @@
             :entries="indexResult.entries"
             :search="searchInput"
             :selectedId="selectedId"
+            :selectedFrameworkId="frameworkId"
             @update:search="onSearch"
-            @select="setQuery({ datapoint: $event })"
+            @select="onSelectDatapoint"
           />
           <FrameworkTreeBrowser
             v-else
@@ -113,6 +114,10 @@ const selectedFramework = computed(() => details.value[frameworkId.value ?? ''])
 /** Keep explorer state shareable in the route query. */
 function setQuery(changes: Record<string, string>): void {
   void router.replace({ query: { ...route.query, ...changes } });
+}
+/** Select a datapoint together with the framework occurrence the user picked. */
+function onSelectDatapoint(id: string, selectedFrameworkId: string): void {
+  setQuery({ datapoint: id, framework: selectedFrameworkId });
 }
 /** Store one framework after its query succeeds. */
 function onFrameworkLoaded(framework: FrameworkSpecification): void {

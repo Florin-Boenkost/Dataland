@@ -19,7 +19,7 @@
         <ul>
           <li v-for="(occurrence, index) in entry.occurrences" :key="index">
             <Button link :label="occurrence.frameworkName" @click="$emit('show-framework', occurrence.frameworkId)" />
-            {{ occurrence.path.slice(0, -1).join(' > ') }}
+            {{ occurrence.displayPath.join(' > ') }}
           </li>
         </ul>
       </Panel>
