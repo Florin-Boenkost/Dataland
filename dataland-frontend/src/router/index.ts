@@ -7,6 +7,7 @@ const SearchCompaniesForFrameworkData = (): Promise<RouteComponent> =>
   import('@/components/pages/SearchCompaniesForFrameworkData.vue');
 const NoContentFound = (): Promise<RouteComponent> => import('@/components/pages/NoContentFound.vue');
 const ApiKeysPage = (): Promise<RouteComponent> => import('@/components/pages/ApiKeysPage.vue');
+const FrameworkExplorerPage = (): Promise<RouteComponent> => import('@/components/pages/FrameworkExplorerPage.vue');
 const SingleDataRequest = (): Promise<RouteComponent> => import('@/components/pages/SingleDataRequest.vue');
 const ViewFrameworkData = (): Promise<RouteComponent> => import('@/components/pages/ViewFrameworkData.vue');
 const DocumentOverview = (): Promise<RouteComponent> => import('@/components/pages/DocumentOverview.vue');
@@ -209,6 +210,15 @@ const routes = [
     component: SharedPortfolioOverview,
     meta: {
       initialTabId: 'shared-portfolios',
+      requiresAuthentication: true,
+    },
+  },
+  {
+    path: '/framework-explorer',
+    name: 'Framework Explorer',
+    component: FrameworkExplorerPage,
+    meta: {
+      initialTabId: 'framework-explorer',
       requiresAuthentication: true,
     },
   },
