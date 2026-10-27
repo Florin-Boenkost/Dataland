@@ -1,12 +1,17 @@
 <template>
   <div class="explorer-list">
-    <label for="datapoint-search" class="block mb-2">Search name, datapoint ID, alias or category</label>
-    <InputText
-      id="datapoint-search"
-      :modelValue="search"
-      @update:modelValue="$emit('update:search', String($event))"
-      class="w-full mb-3"
-    />
+    <label for="datapoint-search" class="block mb-2 text-center">Search name, datapoint ID, alias or category</label>
+    <IconField class="datapoint-search-field mb-3">
+      <InputIcon class="pi pi-search" />
+      <InputText
+        id="datapoint-search"
+        size="small"
+        placeholder="Search"
+        :modelValue="search"
+        @update:modelValue="$emit('update:search', String($event))"
+        class="w-full"
+      />
+    </IconField>
     <p v-if="!groups.length">No datapoints match.</p>
     <DataTable
       v-else
@@ -50,6 +55,8 @@ import { computed, ref, watch } from 'vue';
 import Button from 'primevue/button';
 import DataTable, { type DataTableRowClickEvent } from 'primevue/datatable';
 import Column from 'primevue/column';
+import IconField from 'primevue/iconfield';
+import InputIcon from 'primevue/inputicon';
 import InputText from 'primevue/inputtext';
 import { groupDatapointsByName, type DatapointEntry, type DatapointGroup } from './frameworkExplorerSchema';
 
@@ -132,6 +139,12 @@ function occurrenceRowClass(row: OccurrenceRow): string {
 </script>
 
 <style scoped>
+.datapoint-search-field {
+  display: block;
+  max-width: 18rem;
+  margin-left: auto;
+  margin-right: auto;
+}
 .explorer-list :deep(tbody > tr) {
   cursor: pointer;
 }

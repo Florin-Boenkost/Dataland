@@ -241,6 +241,31 @@ describe('Framework explorer page', () => {
     cy.contains('Show example').should('be.visible');
   });
 
+  it('shows technical details collapsed by default and expands them on demand', () => {
+    getMountingFunction({ keycloak: minimalKeycloakMock({}) })(DatapointDetailPanel, {
+      props: { id: 'firstType', entry: buildDatapointIndex([framework])[0], frameworks: [framework] },
+    });
+    cy.contains('First datapoint').should('be.visible');
+    cy.contains('DecimalValidator').should('not.be.visible');
+    cy.get('button[aria-label="Technical details"]').should('have.attr', 'aria-expanded', 'false').click();
+    cy.contains('dt', 'Base type ID').should('be.visible');
+    cy.contains('dd', 'extendedDecimal').should('be.visible');
+    cy.contains('dd', 'DecimalValidator').should('be.visible');
+  });
+
+  it('hides the datapoint ID until requested and colors the JSON example', () => {
+    getMountingFunction({ keycloak: minimalKeycloakMock({}) })(DatapointDetailPanel, {
+      props: { id: 'firstType', entry: buildDatapointIndex([framework])[0], frameworks: [framework] },
+    });
+    cy.get('.detail-id').should('not.exist');
+    cy.contains('button', 'Show ID').click();
+    cy.get('.detail-id').should('have.text', 'firstType');
+    cy.contains('button', 'Copy ID').should('be.visible');
+    cy.contains('Show example').click();
+    cy.get('.json-key').should('contain.text', '"value"');
+    cy.get('.json-number').should('contain.text', '5');
+  });
+
   it('keeps the datapoint list usable if its detail request fails', () => {
     cy.intercept('GET', '/specifications/data-point-types/firstType', { statusCode: 404, body: {} });
     cy.wrap(router.replace('/framework-explorer?datapoint=firstType')).then(() => {
