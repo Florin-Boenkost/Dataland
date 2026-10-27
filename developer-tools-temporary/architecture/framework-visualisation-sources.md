@@ -11,11 +11,11 @@ Base path `/specifications`, port 8489. The inbound proxy already routes `/speci
 
 | Source | Useful for |
 |---|---|
-| `dataland-specification-service/src/main/kotlin/org/dataland/datalandspecificationservice/api/SpecificationApi.kt` | Endpoints: `GET /frameworks`, `/frameworks/{id}`, `/frameworks/{id}/resolved-schema`, `/data-point-types/{id}`, `/data-point-types/{id}/validated-by`, `/data-point-base-types/{id}`, `/data-point-base-types/{id}/validated-by`. There is no "list all datapoint types" endpoint, so walk the framework schema and fetch each type by id. |
+| `dataland-specification-service/src/main/kotlin/org/dataland/datalandspecificationservice/api/SpecificationApi.kt` | Endpoints: `GET /frameworks`, `/frameworks/{id}`, `/frameworks/{id}/resolved-schema`, `/data-point-types/{id}`, `/data-point-types/{id}/validated-by`, `/data-point-base-types/{id}`, `/data-point-base-types/{id}/validated-by`. There is no "list all datapoint types" endpoint, so walk the framework schema and fetch each type by id. The resolved schema supplies base-type structures at the same paths as the ordinary framework schema. |
 | `.../controller/SpecificationController.kt` | Implementation on top of the in-memory `SpecificationDatabase`. |
 | `.../model/FrameworkSpecification.kt` | Framework `name`, `businessDefinition`, `referencedReportJsonPath`, and `schema` (a JSON string). Leaves are `{id, ref, aliasExport}`, giving framework to datapoint membership and the category/subcategory hierarchy. |
 | `.../model/DataPointTypeSpecification.kt` | Datapoint `name`, `businessDefinition` (the description), base type, `usedBy` (frameworks using it), `constraints`, `calculationRules`. |
-| `.../model/DataPointBaseTypeSpecification.kt` | Value structure, `example`, `validatedBy`, `usedBy`. |
+| `.../model/DataPointBaseTypeSpecification.kt` | Base-type name, definition, `example`, `validatedBy`, `usedBy`; the per-id response does not contain the value structure. The framework's resolved-schema endpoint provides it. |
 | `.../model/IdWithRef.kt` | `{id, ref}` pair; `ref` is a URL to the resource. |
 | `dataland-specification-service/specificationServiceOpenApi.json` | Input for client generation. Do not hand-edit; regenerate with `./gradlew :dataland-specification-service:generateOpenApiDocs`. |
 | `.../src/test/kotlin/.../SpecificationControllerTest.kt`, `src/test/resources/specifications-test/**` | Fixtures showing the file formats. |
@@ -63,7 +63,7 @@ Explains how CSV columns map to spec fields. Under `dataland-framework-toolbox/`
 - The frontend has no specification-service client and no code consuming `/specifications`.
 - (Frontend-only decision, no backend change.) Add a `generateSpecificationServiceClient` task in `dataland-frontend/build.gradle.kts` (input: `specificationServiceOpenApi.json`) and include it in `generateClients`.
 - Model for the task: `dataland-backend/build.gradle.kts` (~lines 210-275, output `build/clients/specification-service`). `dataland-qa-service/build.gradle.kts` also references it.
-- Patterns to mirror: `dataland-frontend/src/frameworks/` (`ViewConfig.ts`, `FrontendFrameworkRegistry.ts`, `BaseFrameworkDefinition.ts`, `FrameworkApiUtils.ts`), `src/router/index.ts`, `src/components/pages/`.
+- Patterns to mirror: `dataland-frontend/src/frameworks/` (`ViewConfig.ts`, `FrontendFrameworkRegistry.ts`, `BaseFrameworkDefinition.ts`, `FrameworkApiUtils.ts`), `src/router/index.ts`, `src/components/pages/`. Add the navigation tab after `COMPANIES` in `src/components/general/DatasetsTabMenu.vue`.
 - Follow `dataland-frontend/AGENTS.md` and `dataland-sharedElements/AGENTS.md`.
 
 ## Data mapping for the feature
@@ -71,4 +71,5 @@ Explains how CSV columns map to spec fields. Under `dataland-framework-toolbox/`
 - Datapoint to frameworks: `usedBy` on `/data-point-types/{id}` (static: `frameworkOwnership`).
 - Descriptions: `name` and `businessDefinition` on the datapoint type; base type adds `example`; CSV tooltip is the original text.
 - Other metadata: `constraints`, `calculationRules`, `dataPointBaseType.id`, `referencedReportJsonPath`.
-- Datapoint list and `usedBy` for the UI: build client-side by parsing all framework schemas (reverse index). Only name and description need per-id calls.
+- Supported-value structure: for a selected datapoint, match its path from `/frameworks/{id}` to the same path in `/frameworks/{id}/resolved-schema`; fetch only for a containing framework when needed. The resolved structure provides field paths and types, not reliable nullability; `/data-point-base-types/{id}` provides the separate example.
+- Datapoint list and `usedBy` for the UI: build client-side by parsing all framework schemas (reverse index). Fetch name and description per selected datapoint, base-type metadata per selected base type, and the containing framework's resolved schema for the value structure.

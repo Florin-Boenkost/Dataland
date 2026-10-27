@@ -7,7 +7,7 @@ Status legend: **Verified** (read in the code), **Proposed**, **Open**.
 ## 1. What already exists (verified)
 
 - Specification service (`/specifications`, port 8489) is already routed by `dataland-inbound-proxy/templates/common.template`. No proxy change.
-- Existing endpoints are enough: `GET /frameworks`, `GET /frameworks/{id}` (schema with leaves `{id, ref, aliasExport}`), `GET /data-point-types/{id}` (name, businessDefinition, base type, `usedBy`, constraints, calculationRules), `GET /data-point-base-types/{id}`.
+- Existing endpoints are enough: `GET /frameworks`, `GET /frameworks/{id}` (schema with leaves `{id, ref, aliasExport}`), `GET /frameworks/{id}/resolved-schema` (base-type structures at the same framework paths), `GET /data-point-types/{id}` (name, businessDefinition, base type, `usedBy`, constraints, calculationRules), `GET /data-point-base-types/{id}` (name, definition, example, validation metadata; no structure schema).
 - `specificationServiceOpenApi.json` already exists and is not modified.
 - The frontend has no specification client yet. This is the only missing piece, and it is a frontend build change, not a backend change.
 
@@ -44,10 +44,11 @@ Datapoint names and descriptions only exist on the per-id endpoint (about 600 id
 - `src/services/ApiClients.ts`: import the generated controller, add it to the `ApiClients` interface, register in `constructApiClients()` with `getClientFactory('/specifications')`.
 
 ### Step 3: Query hooks
-- `src/api-queries/specification-service/` as described in the frontend architecture file (framework list, framework detail, data point type, base type). One hook per endpoint, no logic inside. Read `src/api-queries/AGENTS.md` first.
+- `src/api-queries/specification-service/` as described in the frontend architecture file (framework list, framework detail, resolved framework schema, data point type, base type). One hook per endpoint, no logic inside. Read `src/api-queries/AGENTS.md` first.
 
 ### Step 4: Pure logic and UI
-- Framework tree and datapoint index builders, components, route and navigation: see the frontend architecture file.
+- Framework tree and datapoint index builders, components and route: see the frontend architecture file. Put the navigation tab immediately after `COMPANIES` in `DatasetsTabMenu.vue`, before the conditional `MY COMPANY` tab.
+- For a selected datapoint, use its path from the ordinary framework schema to look up its structure in that framework's resolved schema. Fetch and cache the resolved schema for one containing framework on selection, not for every framework on initial load. Render field paths and types; keep the base-type example separately collapsible. Do not infer a nullable column from these endpoints.
 
 ### Step 5: Verification
 - `npm run lint`, `npm run typecheck`, `npm run lintci`, `npm run formatci`, `npm run checkdependencies`, `npm run checkcypresscompilation`, plus the new Cypress component tests. Use skill `dataland-frontend-impact`.
@@ -61,6 +62,7 @@ Datapoint names and descriptions only exist on the per-id endpoint (about 600 id
 | Many requests for names/descriptions | Option A first, long `staleTime`, bounded concurrency if B is added |
 | Search does not cover descriptions at first | Communicate in the UI (search placeholder), upgrade to B if needed |
 | Schema parsing complexity (the schema is a JSON string with nested categories) | Pure, unit-tested builder using real specification files as fixtures |
+| Resolved schema is framework-scoped, not a per-base-type response | Match the selected datapoint's path in the ordinary framework schema to the same path in the resolved schema; handle missing or malformed paths with a neutral fallback |
 | Endpoints are unauthenticated and the page is login-only only in the frontend | Decided: the endpoints stay public, since the specifications describe the data model, not company data. Authentication testing is deferred |
 | Backend change later wanted for performance | Additive list endpoint can still be introduced later. The list component takes plain props, so the data source can be swapped without UI changes |
 

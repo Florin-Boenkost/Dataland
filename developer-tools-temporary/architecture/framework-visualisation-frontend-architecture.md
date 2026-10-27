@@ -41,7 +41,7 @@ Status legend: **Decided** (agreed with the product owner), **Proposed** (my rec
   - The route query is the single source of truth. Components read it and write to it with `router.replace`.
   - Invalid or unknown values fall back to defaults instead of failing.
 - **Decided:** The page is login-only: the route sets `meta.requiresAuthentication: true`, like the other authenticated routes.
-- **Decided:** The navigation entry goes at the far right of the navigation. The exact component and its position relative to existing right-aligned items (for example user menu, login button) still has to be checked against the existing navigation code.
+- **Decided:** Add the `Framework Explorer` tab immediately after `COMPANIES` in `src/components/general/DatasetsTabMenu.vue`, before the conditional `MY COMPANY` tab. Set `initialTabId` on the new route to keep it selected. This is the navigation tab row, not the header's user/login controls.
 
 ## 4. Component structure
 
@@ -54,7 +54,7 @@ Under `src/components/pages/` and a new feature folder `src/components/resources
 | `FrameworkTreeBrowser.vue` | "By framework" mode. Framework `Select` plus PrimeVue `Tree`. Emits the selected id. |
 | `DatapointDetailPanel.vue` | Loads and shows the selected datapoint. Composes the section components below. |
 | `DatapointFrameworksSection.vue` | Tags per framework with the category path. Click switches to "By framework" for that framework. |
-| `DatapointValuesSection.vue` | Base type label, structure table and example. |
+| `DatapointValuesSection.vue` | Base type label, field-path/type structure table from a resolved framework schema, and collapsible example from the base type response. |
 | `DatapointRulesSection.vue` | Constraints and calculation rules as readable text. |
 | `DatapointTechnicalSection.vue` | Id, base type id, validation class, report reference. Collapsed by default. |
 
@@ -73,22 +73,23 @@ Rules come from `dataland-frontend/AGENTS.md` and `src/api-queries/AGENTS.md`.
 
 | Folder | Hooks (one per endpoint) | Key factory |
 |---|---|---|
-| `framework/` | `useListFrameworkSpecificationsQuery`, `useGetFrameworkSpecificationQuery` | `frameworkSpecificationKeys` |
+| `framework/` | `useListFrameworkSpecificationsQuery`, `useGetFrameworkSpecificationQuery`, `useGetResolvedFrameworkSpecificationQuery` | `frameworkSpecificationKeys` (separate keys for detail and resolved schema) |
 | `data-point-type/` | `useGetDataPointTypeSpecificationQuery` | `dataPointTypeSpecificationKeys` |
 | `data-point-base-type/` | `useGetDataPointBaseTypeQuery` | `dataPointBaseTypeKeys` |
 
   There is no list-all-datapoints hook, because no such endpoint exists and none will be added.
 
   Each hook gets TSDoc, `MaybeRefOrGetter` params, an `enabled` default of "params present", and an explicit return type. Hooks for any further endpoints are added the same way once they exist.
-- **Proposed:** Client access: the generated specification client has to be registered in `src/services/ApiClients.ts` so `useApiClient()` can return it. This is the only change outside `api-queries/` for client access. (The client generation itself is part of the backend/build plan, not covered here.)
+- **Proposed:** Client access: the generated specification client has to be registered in `src/services/ApiClients.ts` so `useApiClient()` can return it. This is the only change outside `api-queries/` for client access. Client generation is covered by the frontend-only client wiring plan.
 - **Proposed:** Feature composables outside `api-queries/`, under `src/components/resources/frameworkExplorer/` (or a `composables` folder if the repo has one):
   - `useFrameworkExplorerRouteState`: typed read/write of the query parameters.
   - `useFrameworkTree`: turns the framework `schema` string into `Tree` nodes (parse JSON, build nodes, keep the category path per datapoint). Pure function plus a thin composable, so it is unit-testable.
   - `useDatapointIndex`: builds the flat datapoint index and reverse framework lookup from all loaded framework schemas (pure function plus thin composable). Replaces the server-side list and `usedBy`.
   - `useDatapointFrameworkPaths`: resolves, for the selected datapoint, the path inside each framework.
-  - `useBaseTypeStructure`: flattens the base type `schema` into table rows (field, type, nullable).
+  - `useBaseTypeStructure`: flattens the selected datapoint's entry in a resolved framework schema into table rows (field path, type); nullable is not available.
 - **Proposed:** Caching: the specification data changes only with a deployment, so use a long `staleTime` (for example 10 minutes or more) through the hook `options` argument at the consumer. Detail requests are cached per id by the key factory, so reselecting a datapoint is instant.
 - **Decided (no backend change):** The flat "all datapoints" list is derived client-side. Load all frameworks (about 7 requests), parse their `schema` strings, and build a datapoint index (id, alias, category path, frameworks it appears in). The reverse index replaces the server-side `usedBy`. Names and descriptions come lazily from `GET /data-point-types/{id}`; optional background prefetch is described in the client wiring plan. The list component takes plain props, so the data source can change later without touching the UI.
+- **Decided (value structure):** `GET /data-point-base-types/{id}` has no `schema` field, so `useBaseTypeStructure` cannot flatten that response. On selecting a datapoint, choose a containing framework (prefer the currently selected framework in "By framework" mode; otherwise use a deterministic first match), fetch `GET /frameworks/{id}/resolved-schema` through its own hook, and cache it by framework id. Match the datapoint's full path from the ordinary framework schema against `resolvedSchema` to retrieve its base-type structure. Flatten the structure into field-path/type rows in a pure function; handle missing paths or unexpected shapes with a neutral fallback. Do not fetch resolved schemas for all frameworks on initial load or infer a nullable column. Keep `GET /data-point-base-types/{id}` for the name, definition, example and validation metadata.
 
 ## 6. Detail panel content
 
@@ -97,7 +98,7 @@ Rules come from `dataland-frontend/AGENTS.md` and `src/api-queries/AGENTS.md`.
 | Header | Name, base type `Tag`, copyable id | Name first, id is secondary. |
 | Description | `businessDefinition` | Plain text. Handle empty with a neutral "No description available" message. |
 | Appears in frameworks | One entry per framework: name `Tag` plus path "Category > Subcategory" | Click switches to "By framework" with the datapoint highlighted. |
-| Supported values | Base type name and definition, structure table, example | Structure table is primary, example JSON is collapsed under "Show example". |
+| Supported values | Base type name and definition; field path/type structure table from a containing framework's resolved schema; example from the base type response | Structure table is primary, example JSON is collapsed under "Show example". No nullable column; show a neutral fallback if the path cannot be resolved. |
 | Rules | Constraints and calculation rules as readable lines | Show raw rule text if it can't be formatted. |
 | Technical details (collapsed) | Datapoint id, base type id, validation class, report reference path, export alias per framework | For admins and reviewers. |
 
@@ -121,8 +122,9 @@ Later iterations: related datapoints, framework comparison (matrix), download as
   - Page: mode toggle, search, selection updates the URL, deep link opens the right datapoint.
   - Detail panel: all sections for a normal datapoint, empty description, datapoint in several frameworks, error and not-found states.
   - Tree browser: schema renders as the expected hierarchy.
-- **Unit-level checks for pure logic** (`useFrameworkTree`, `useBaseTypeStructure`) with fixtures taken from real specification files.
-- **E2E:** One journey: open the page, search a datapoint, see its frameworks and values. To be added once the backend side exists.
+- **Unit-level checks for pure logic** (`useFrameworkTree`, `useBaseTypeStructure`) with fixtures modelled on real specification files and the resolved-schema response. Cover path matching, nested structures and missing paths.
+- **Value-structure component test:** intercept framework detail, resolved-schema and base-type requests; verify the selected datapoint's field paths/types, the collapsible example, and the fallback if the resolved path is missing.
+- **E2E:** One journey: open the page, search a datapoint, see its frameworks and values. Add after the frontend feature is ready; the existing specification endpoints supply the data.
 
 ## 9. Verification before finishing
 
@@ -130,7 +132,7 @@ From `dataland-frontend/AGENTS.md`: `npm run lint`, `npm run typecheck`, then `n
 
 ## 10. Open questions
 
-Resolved: lazy loading for the MVP, public specification endpoints, login-only, navigation entry at the far right, English only, mobile out of scope (see sections 2, 3 and 7).
+Resolved: lazy loading for the MVP, public specification endpoints, login-only, navigation tab immediately after `COMPANIES`, English only, mobile out of scope (see sections 2, 3 and 7).
 
-1. Which navigation component hosts the entry, and how does it sit next to the existing right-aligned items? To be checked in the code.
+1. (Resolved) `DatasetsTabMenu.vue` hosts the tab, immediately after `COMPANIES`.
 2. (Resolved) MVP uses lazy names/descriptions. Background prefetch for description search is a later option (see client wiring plan, section 3).
