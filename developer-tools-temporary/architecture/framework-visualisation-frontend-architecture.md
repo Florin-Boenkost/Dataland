@@ -1,6 +1,6 @@
 # Framework Visualisation: Frontend Architecture Decisions
 
-Temporary planning note. Frontend only. The backend plan is intentionally not part of this document.
+Temporary planning note. Frontend only, **no backend changes** (see `framework-visualisation-client-wiring-plan.md` for the client generation and registration steps).
 Companion to `framework-visualisation-sources.md`.
 
 Status legend: **Decided** (agreed with the product owner), **Proposed** (my recommendation, open to change), **Open** (needs input).
@@ -77,15 +77,18 @@ Rules come from `dataland-frontend/AGENTS.md` and `src/api-queries/AGENTS.md`.
 | `data-point-type/` | `useGetDataPointTypeSpecificationQuery` | `dataPointTypeSpecificationKeys` |
 | `data-point-base-type/` | `useGetDataPointBaseTypeQuery` | `dataPointBaseTypeKeys` |
 
+  There is no list-all-datapoints hook, because no such endpoint exists and none will be added.
+
   Each hook gets TSDoc, `MaybeRefOrGetter` params, an `enabled` default of "params present", and an explicit return type. Hooks for any further endpoints are added the same way once they exist.
 - **Proposed:** Client access: the generated specification client has to be registered in `src/services/ApiClients.ts` so `useApiClient()` can return it. This is the only change outside `api-queries/` for client access. (The client generation itself is part of the backend/build plan, not covered here.)
 - **Proposed:** Feature composables outside `api-queries/`, under `src/components/resources/frameworkExplorer/` (or a `composables` folder if the repo has one):
   - `useFrameworkExplorerRouteState`: typed read/write of the query parameters.
   - `useFrameworkTree`: turns the framework `schema` string into `Tree` nodes (parse JSON, build nodes, keep the category path per datapoint). Pure function plus a thin composable, so it is unit-testable.
+  - `useDatapointIndex`: builds the flat datapoint index and reverse framework lookup from all loaded framework schemas (pure function plus thin composable). Replaces the server-side list and `usedBy`.
   - `useDatapointFrameworkPaths`: resolves, for the selected datapoint, the path inside each framework.
   - `useBaseTypeStructure`: flattens the base type `schema` into table rows (field, type, nullable).
 - **Proposed:** Caching: the specification data changes only with a deployment, so use a long `staleTime` (for example 10 minutes or more) through the hook `options` argument at the consumer. Detail requests are cached per id by the key factory, so reselecting a datapoint is instant.
-- **Open (depends on the backend):** How the flat "all datapoints" list gets its data. The frontend design only requires "a list of datapoint summaries (id, name, frameworks)". It stays unspecified until the backend plan exists. The list component takes plain props, so the data source can change without touching the UI.
+- **Decided (no backend change):** The flat "all datapoints" list is derived client-side. Load all frameworks (about 7 requests), parse their `schema` strings, and build a datapoint index (id, alias, category path, frameworks it appears in). The reverse index replaces the server-side `usedBy`. Names and descriptions come lazily from `GET /data-point-types/{id}`; optional background prefetch is described in the client wiring plan. The list component takes plain props, so the data source can change later without touching the UI.
 
 ## 6. Detail panel content
 
@@ -106,7 +109,7 @@ Later iterations: related datapoints, framework comparison (matrix), download as
 - **Errors:** A `Message` (severity error) with a retry button using the query's `refetch`. A failed detail request must not break the list.
 - **Empty states:** "Select a datapoint to see its details" before a selection. "No datapoints match" for an empty search.
 - **Not found:** An unknown `datapoint` id in the URL shows a not-found message in the panel, and the list stays usable.
-- **Search:** Client-side, case-insensitive, over name and id (and description if the list data contains it). Debounced input.
+- **Search:** Client-side, case-insensitive, over id, alias and category path, plus name and description once those details are loaded. Debounced input.
 - **Large list:** About 600 datapoints. Use the `DataTable` virtual scroller or pagination if rendering is slow. Decide after measuring.
 - **Selection sync:** Selecting in either mode updates `?datapoint=`. Switching mode keeps the selected datapoint.
 - **Accessibility:** Keyboard navigation comes from the PrimeVue components. The panel has a heading hierarchy, and the tags are real links or buttons with labels.
@@ -127,7 +130,7 @@ From `dataland-frontend/AGENTS.md`: `npm run lint`, `npm run typecheck`, then `n
 
 ## 10. Open questions
 
-Resolved: login-only, navigation entry at the far right, English only, mobile out of scope (see sections 2, 3 and 7).
+Resolved: lazy loading for the MVP, public specification endpoints, login-only, navigation entry at the far right, English only, mobile out of scope (see sections 2, 3 and 7).
 
 1. Which navigation component hosts the entry, and how does it sit next to the existing right-aligned items? To be checked in the code.
-2. Which list data the frontend can rely on (depends on the backend plan, not yet written).
+2. (Resolved) MVP uses lazy names/descriptions. Background prefetch for description search is a later option (see client wiring plan, section 3).

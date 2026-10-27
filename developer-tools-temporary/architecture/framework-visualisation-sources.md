@@ -61,7 +61,7 @@ Explains how CSV columns map to spec fields. Under `dataland-framework-toolbox/`
 
 ## 6. Client and frontend wiring
 - The frontend has no specification-service client and no code consuming `/specifications`.
-- Add a `generateSpecificationServiceClient` task in `dataland-frontend/build.gradle.kts` (input: `specificationServiceOpenApi.json`) and include it in `generateClients`.
+- (Frontend-only decision, no backend change.) Add a `generateSpecificationServiceClient` task in `dataland-frontend/build.gradle.kts` (input: `specificationServiceOpenApi.json`) and include it in `generateClients`.
 - Model for the task: `dataland-backend/build.gradle.kts` (~lines 210-275, output `build/clients/specification-service`). `dataland-qa-service/build.gradle.kts` also references it.
 - Patterns to mirror: `dataland-frontend/src/frameworks/` (`ViewConfig.ts`, `FrontendFrameworkRegistry.ts`, `BaseFrameworkDefinition.ts`, `FrameworkApiUtils.ts`), `src/router/index.ts`, `src/components/pages/`.
 - Follow `dataland-frontend/AGENTS.md` and `dataland-sharedElements/AGENTS.md`.
@@ -71,3 +71,4 @@ Explains how CSV columns map to spec fields. Under `dataland-framework-toolbox/`
 - Datapoint to frameworks: `usedBy` on `/data-point-types/{id}` (static: `frameworkOwnership`).
 - Descriptions: `name` and `businessDefinition` on the datapoint type; base type adds `example`; CSV tooltip is the original text.
 - Other metadata: `constraints`, `calculationRules`, `dataPointBaseType.id`, `referencedReportJsonPath`.
+- Datapoint list and `usedBy` for the UI: build client-side by parsing all framework schemas (reverse index). Only name and description need per-id calls.
