@@ -63,6 +63,15 @@
         <p v-else-if="!resolved.isPending.value && !resolved.isError.value">Value structure unavailable.</p>
       </Panel>
       <Panel header="Calculation rules and constraints" class="mb-3">
+        <Button
+          v-if="detail.data.value.calculationRules.length"
+          label="Show flow chart"
+          icon="pi pi-sitemap"
+          size="small"
+          text
+          class="mb-2"
+          @click="showFlowChart = true"
+        />
         <p v-if="!detail.data.value.constraints?.length && !detail.data.value.calculationRules.length">
           No rules available.
         </p>
@@ -92,6 +101,13 @@
         </dl>
       </Panel>
     </template>
+    <CalculationFlowChartDialog
+      v-if="showFlowChart"
+      v-model:visible="showFlowChart"
+      :centerId="id"
+      :datapointIds="(entries ?? []).map((item) => item.id)"
+      @select="$emit('show-datapoint', $event)"
+    />
   </div>
 </template>
 
@@ -108,16 +124,18 @@ import Message from 'primevue/message';
 import Panel from 'primevue/panel';
 import Skeleton from 'primevue/skeleton';
 import Tag from 'primevue/tag';
+import CalculationFlowChartDialog from './CalculationFlowChartDialog.vue';
 import type { DatapointEntry } from './frameworkExplorerSchema';
 import { flattenValueStructure, resolveStructure } from './frameworkExplorerSchema';
 
 const props = defineProps<{
   id?: string;
   entry?: DatapointEntry;
+  entries?: DatapointEntry[];
   frameworkId?: string;
   frameworks: FrameworkSpecification[];
 }>();
-defineEmits<{ 'show-framework': [id: string] }>();
+defineEmits<{ 'show-framework': [id: string]; 'show-datapoint': [id: string] }>();
 const occurrence = computed(
   () => props.entry?.occurrences.find((item) => item.frameworkId === props.frameworkId) ?? props.entry?.occurrences[0]
 );
@@ -136,6 +154,7 @@ const fields = computed(() =>
 );
 const navigator = globalThis.navigator;
 const showId = ref(false);
+const showFlowChart = ref(false);
 const escapeHtml = (text: string): string => text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 const highlightedExample = computed(() =>
   escapeHtml(JSON.stringify(base.data.value?.example, null, 2) ?? '').replace(

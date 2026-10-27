@@ -266,6 +266,44 @@ describe('Framework explorer page', () => {
     cy.get('.json-number').should('contain.text', '5');
   });
 
+  it('opens a flow chart for calculated datapoints and re-centers on click', () => {
+    cy.intercept('GET', '/specifications/data-point-types/firstType', {
+      dataPointType: { id: 'firstType', ref: '' },
+      name: 'First datapoint',
+      businessDefinition: 'Explanation',
+      dataPointBaseType: { id: 'extendedDecimal', ref: '' },
+      usedBy: [],
+      constraints: [],
+      calculationRules: [{ inputs: ['secondType'], calculationMethod: 'Doubling' }],
+    });
+    cy.intercept('GET', '/specifications/data-point-types/secondType', {
+      dataPointType: { id: 'secondType', ref: '' },
+      name: 'Second datapoint',
+      businessDefinition: '',
+      dataPointBaseType: { id: 'extendedDecimal', ref: '' },
+      usedBy: [],
+      constraints: [],
+      calculationRules: [],
+    });
+    cy.wrap(router.replace('/framework-explorer?datapoint=firstType')).then(() => {
+      cy.mountWithPlugins(FrameworkExplorerPage, { keycloak: minimalKeycloakMock({}), router });
+    });
+    cy.contains('button', 'Show flow chart').click();
+    cy.get('[data-test="flow-scroll"]').should('be.visible');
+    cy.contains('.flow-method', 'Doubling').should('be.visible');
+    cy.contains('button.flow-node', 'Second datapoint').click();
+    cy.get('[data-test="flow-scroll"]').should('be.visible');
+    cy.wrap(null).then(() => expect(router.currentRoute.value.query.datapoint).to.equal('secondType'));
+  });
+
+  it('hides the flow chart button for datapoints without rules', () => {
+    getMountingFunction({ keycloak: minimalKeycloakMock({}) })(DatapointDetailPanel, {
+      props: { id: 'firstType', entry: buildDatapointIndex([framework])[0], frameworks: [framework] },
+    });
+    cy.contains('First datapoint').should('be.visible');
+    cy.contains('button', 'Show flow chart').should('not.exist');
+  });
+
   it('keeps the datapoint list usable if its detail request fails', () => {
     cy.intercept('GET', '/specifications/data-point-types/firstType', { statusCode: 404, body: {} });
     cy.wrap(router.replace('/framework-explorer?datapoint=firstType')).then(() => {

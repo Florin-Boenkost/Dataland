@@ -44,9 +44,11 @@
           <DatapointDetailPanel
             :id="selectedId"
             :entry="selectedEntry"
+            :entries="indexResult.entries"
             :frameworkId="frameworkId"
             :frameworks="frameworkDetails"
             @show-framework="setQuery({ mode: 'framework', framework: $event })"
+            @show-datapoint="setQuery({ datapoint: $event })"
           />
         </main>
       </div>
